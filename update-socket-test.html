@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Professional Notification System</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --primary: #4361ee;
+        --secondary: #3f37c9;
+        --success: #4cc9f0;
+        --danger: #f72585;
+        --warning: #f8961e;
+        --info: #4895ef;
+        --light: #f8f9fa;
+        --dark: #212529;
+        --gray: #6c757d;
+        --pending: #f39c12;
+        --processing: #3498db;
+        --complete: #2e46cc;
+        --failed: #e74c3c;
+        --error: #af2323;
+        --retry: #9b59b6;
+        --progress: #95a5a6;
+        --background: #f5f7fa;
+        --card-bg: #ffffff;
+        --border: #dee2e6;
+      }
+
+      .dark-mode {
+        --background: #1a2236;
+        --card-bg: #243447;
+        --border: #344a64;
+        --dark: #f8f9fa;
+        --gray: #adb5bd;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--background);
+        color: var(--dark);
+        line-height: 1.6;
+        transition: background-color 0.3s, color 0.3s;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 0;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary);
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .btn-primary {
+        background-color: var(--primary);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--secondary);
+      }
+
+      .btn-outline {
+        background-color: transparent;
+        border: 1px solid var(--border);
+        color: var(--dark);
+      }
+
+      .btn-outline:hover {
+        background-color: var(--border);
+      }
+
+      .btn-icon {
+        padding: 8px;
+        border-radius: 50%;
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 20px;
+      }
+
+      .sidebar {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      }
+
+      .status-filters h3,
+      .type-filters h3 {
+        margin-bottom: 15px;
+        font-size: 1.1rem;
+        color: var(--primary);
+      }
+
+      .filter-group {
+        margin-bottom: 20px;
+      }
+
+      .filter-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding: 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      .filter-item:hover {
+        background-color: var(--border);
+      }
+
+      .filter-item.active {
+        background-color: rgba(67, 97, 238, 0.1);
+        font-weight: 500;
+      }
+
+      .status-badge {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+
+      .PENDING {
+        background-color: var(--pending);
+      }
+      .PROCESSING {
+        background-color: var(--processing);
+      }
+      .SUCCESS {
+        background-color: var(--success);
+      }
+      .COMPLETE {
+        background-color: var(--complete);
+      }
+      .FAILED {
+        background-color: var(--failed);
+      }
+      .ERROR {
+        background-color: var(--error);
+      }
+      .RETRY {
+        background-color: var(--retry);
+      }
+      .PROGRESS {
+        background-color: var(--progress);
+      }
+
+      .search-box {
+        margin-bottom: 20px;
+        position: relative;
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 10px 15px 10px 40px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background-color: var(--card-bg);
+        color: var(--dark);
+      }
+
+      .search-box i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray);
+      }
+
+      .main-content {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+      }
+
+      .stat-card {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        text-align: center;
+      }
+
+      .stat-card h3 {
+        font-size: 0.9rem;
+        color: var(--gray);
+        margin-bottom: 10px;
+      }
+
+      .stat-card .value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--primary);
+      }
+
+      .notifications-panel {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      }
+
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .panel-header h2 {
+        font-size: 1.3rem;
+        color: var(--primary);
+      }
+
+      .notification-list {
+        max-height: 500px;
+        overflow-y: auto;
+      }
+
+      .notification-item {
+        padding: 15px;
+        border-left: 4px solid var(--border);
+        margin-bottom: 15px;
+        border-radius: 4px;
+        background-color: var(--card-bg);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .notification-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .notification-item.PENDING {
+        border-left-color: var(--pending);
+      }
+      .notification-item.PROCESSING {
+        border-left-color: var(--processing);
+      }
+      .notification-item.SUCCESS {
+        border-left-color: var(--success);
+      }
+      .notification-item.COMPLETE {
+        border-left-color: var(--complete);
+      }
+      .notification-item.FAILED {
+        border-left-color: var(--failed);
+      }
+      .notification-item.ERROR {
+        border-left-color: var(--error);
+      }
+      .notification-item.RETRY {
+        border-left-color: var(--retry);
+      }
+      .notification-item.PROGRESS {
+        border-left-color: var(--progress);
+      }
+
+      .notification-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .notification-title {
+        font-weight: 600;
+        color: var(--dark);
+      }
+
+      .notification-time {
+        font-size: 0.8rem;
+        color: var(--gray);
+      }
+
+      .notification-content {
+        margin-bottom: 10px;
+        color: var(--dark);
+      }
+
+      .notification-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .notification-status {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.8rem;
+        padding: 4px 8px;
+        border-radius: 12px;
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+
+      .notification-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .notification-actions button {
+        background: none;
+        border: none;
+        color: var(--gray);
+        cursor: pointer;
+        font-size: 0.9rem;
+      }
+
+      .notification-actions button:hover {
+        color: var(--primary);
+      }
+
+      .connection-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 15px;
+        background-color: var(--card-bg);
+        border-radius: 20px;
+        font-size: 0.9rem;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .connection-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: #2ecc71;
+      }
+
+      .connection-dot.disconnected {
+        background-color: #e74c3c;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px 0;
+        color: var(--gray);
+      }
+
+      .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: var(--border);
+      }
+
+      .config-panel {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      }
+
+      .config-panel h2 {
+        font-size: 1.3rem;
+        color: var(--primary);
+        margin-bottom: 15px;
+      }
+
+      .config-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background-color: var(--card-bg);
+        color: var(--dark);
+      }
+
+      @media (max-width: 768px) {
+        .dashboard {
+          grid-template-columns: 1fr;
+        }
+
+        .stats-cards {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .config-form {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .stats-cards {
+          grid-template-columns: 1fr;
+        }
+
+        header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 15px;
+        }
+
+        .controls {
+          width: 100%;
+          justify-content: space-between;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="logo">
+          <i class="fas fa-bell"></i>
+          <span>Notification Center</span>
+        </div>
+        <div class="controls">
+          <button class="btn btn-outline" id="clearBtn">
+            <i class="fas fa-trash"></i> Clear All
+          </button>
+          <button class="btn btn-outline" id="toggleThemeBtn">
+            <i class="fas fa-moon"></i> Dark Mode
+          </button>
+          <button class="btn btn-primary" id="connectBtn">
+            <i class="fas fa-plug"></i> Connect
+          </button>
+        </div>
+      </header>
+
+      <div class="dashboard">
+        <div class="sidebar">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search notifications..."
+            />
+          </div>
+
+          <div class="filter-group status-filters">
+            <h3>Status</h3>
+            <div class="filter-item active" data-status="all">
+              <span class="status-badge"></span>
+              <span>All Notifications</span>
+            </div>
+            <div class="filter-item" data-status="PENDING">
+              <span class="status-badge PENDING"></span>
+              <span>Pending</span>
+            </div>
+            <div class="filter-item" data-status="PROCESSING">
+              <span class="status-badge PROCESSING"></span>
+              <span>Processing</span>
+            </div>
+            <div class="filter-item" data-status="SUCCESS">
+              <span class="status-badge SUCCESS"></span>
+              <span>Success</span>
+            </div>
+            <div class="filter-item" data-status="COMPLETE">
+              <span class="status-badge COMPLETE"></span>
+              <span>Complete</span>
+            </div>
+            <div class="filter-item" data-status="FAILED">
+              <span class="status-badge FAILED"></span>
+              <span>Failed</span>
+            </div>
+          </div>
+
+          <div class="filter-group type-filters">
+            <h3>Notification Type</h3>
+            <div class="filter-item active" data-type="all">
+              <i class="fas fa-list"></i>
+              <span>All Types</span>
+            </div>
+            <div class="filter-item" data-type="INVOICE">
+              <i class="fas fa-file-invoice"></i>
+              <span>Invoice</span>
+            </div>
+            <div class="filter-item" data-type="VOUCHER">
+              <i class="fas fa-receipt"></i>
+              <span>Voucher</span>
+            </div>
+            <div class="filter-item" data-type="PAYMENT">
+              <i class="fas fa-money-bill-wave"></i>
+              <span>Payment</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="main-content">
+          <div class="stats-cards">
+            <div class="stat-card">
+              <h3>Total Notifications</h3>
+              <div class="value" id="totalCount">0</div>
+            </div>
+            <div class="stat-card">
+              <h3>Unread</h3>
+              <div class="value" id="unreadCount">0</div>
+            </div>
+            <div class="stat-card">
+              <h3>Success Rate</h3>
+              <div class="value" id="successRate">0%</div>
+            </div>
+            <div class="stat-card">
+              <h3>Failed</h3>
+              <div class="value" id="failedCount">0</div>
+            </div>
+          </div>
+
+          <div class="notifications-panel">
+            <div class="panel-header">
+              <h2>Recent Notifications</h2>
+              <div class="panel-actions">
+                <button class="btn btn-icon btn-outline" id="refreshBtn">
+                  <i class="fas fa-sync-alt"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="notification-list" id="notificationList">
+              <div class="empty-state">
+                <i class="fas fa-bell-slash"></i>
+                <p>No notifications yet</p>
+                <p class="small">
+                  Notifications will appear here when received
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="config-panel">
+        <h2>Configuration</h2>
+        <div class="config-form">
+          <div class="form-group">
+            <label for="serverUrl">Socket Server URL</label>
+            <input type="text" id="serverUrl" value="http://localhost:4000" />
+          </div>
+          <div class="form-group">
+            <label for="authToken">Auth Token</label>
+            <input
+              type="text"
+              id="authToken"
+              value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWV0czJ6NTYwMDFobWZuczFzeWVnNmhhIiwidXNlclR5cGUiOiJERVZFTE9QRVIiLCJqdGkiOiJjbWYzaHVyMDIwMDAwN2NtZmRwNnRndmNrIiwiaWF0IjoxNzU2ODc0NzMxLCJleHAiOjE3NTc0Nzk1MzF9.O8uBfZsQ9Ue52L77tUpqAvsx4nycJBIztTeEfGwEag8"
+            />
+          </div>
+          <div class="form-group">
+            <label for="userId">User ID</label>
+            <input type="text" id="userId" value="cmets2z56001hmfns1syeg6ha" />
+          </div>
+          <div class="form-group">
+            <label for="simulateCheckbox">Simulate Notifications</label>
+            <div>
+              <input type="checkbox" id="simulateCheckbox" checked />
+              <label for="simulateCheckbox">Enable simulation</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="connection-status">
+        <div class="connection-dot" id="connectionDot"></div>
+        <span id="connectionText">Disconnected</span>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // State management
+        const state = {
+          notifications: [],
+          filters: {
+            status: "all",
+            type: "all",
+            search: "",
+          },
+          connected: false,
+          socket: null,
+          darkMode: localStorage.getItem("darkMode") === "true",
+          simulationInterval: null,
+        };
+
+        // DOM elements
+        const elements = {
+          notificationList: document.getElementById("notificationList"),
+          totalCount: document.getElementById("totalCount"),
+          unreadCount: document.getElementById("unreadCount"),
+          successRate: document.getElementById("successRate"),
+          failedCount: document.getElementById("failedCount"),
+          connectionDot: document.getElementById("connectionDot"),
+          connectionText: document.getElementById("connectionText"),
+          searchInput: document.getElementById("searchInput"),
+          clearBtn: document.getElementById("clearBtn"),
+          connectBtn: document.getElementById("connectBtn"),
+          refreshBtn: document.getElementById("refreshBtn"),
+          toggleThemeBtn: document.getElementById("toggleThemeBtn"),
+          serverUrl: document.getElementById("serverUrl"),
+          authToken: document.getElementById("authToken"),
+          userId: document.getElementById("userId"),
+          simulateCheckbox: document.getElementById("simulateCheckbox"),
+        };
+
+        // Initialize theme
+        if (state.darkMode) {
+          document.body.classList.add("dark-mode");
+          elements.toggleThemeBtn.innerHTML =
+            '<i class="fas fa-sun"></i> Light Mode';
+        }
+
+        // Initialize Socket.io connection
+        function initSocket() {
+          // Disconnect existing connection if any
+          if (state.socket) {
+            state.socket.disconnect();
+          }
+
+          const serverUrl = elements.serverUrl.value;
+          const token = elements.authToken.value;
+
+          try {
+            state.socket = io(serverUrl, {
+              auth: {
+                token: `Bearer ${token}`,
+              },
+            });
+
+            state.socket.on("connect", () => {
+              console.log("Connected to server:", state.socket.id);
+              state.connected = true;
+              updateConnectionStatus();
+
+              // Join user room after connection
+              const userId = elements.userId.value;
+              state.socket.emit("join-user", userId);
+            });
+
+            state.socket.on("disconnect", () => {
+              console.log("Disconnected from server");
+              state.connected = false;
+              updateConnectionStatus();
+            });
+
+            // Define notification events
+            const notificationEvents = [
+              "INVOICE_TOUR_PROCESSING",
+              "INVOICE_TOUR_PENDING",
+              "INVOICE_TOUR_SUCCESS",
+              "INVOICE_TOUR_FAILED",
+              "CREATE_RECEIVE_VOUCHER_PENDING",
+              "CREATE_RECEIVE_VOUCHER_SUCCESS",
+              "CREATE_RECEIVE_VOUCHER_FAILED",
+              "DELETE_RECEIVE_VOUCHER_PENDING",
+              "DELETE_RECEIVE_VOUCHER_SUCCESS",
+              "DELETE_RECEIVE_VOUCHER_FAILED",
+              "UPDATE_RECEIVE_VOUCHER_PENDING",
+              "UPDATE_RECEIVE_VOUCHER_SUCCESS",
+              "UPDATE_RECEIVE_VOUCHER_FAILED",
+              "CREATE_PAYMENT_VOUCHER_PENDING",
+              "CREATE_PAYMENT_VOUCHER_SUCCESS",
+              "CREATE_PAYMENT_VOUCHER_FAILED",
+              "PAYMENT_PROCESSING_PENDING",
+              "PAYMENT_PROCESSING_SUCCESS",
+              "PAYMENT_PROCESSING_FAILED",
+            ];
+
+            // Register event listeners
+            notificationEvents.forEach((event) => {
+              state.socket.on(event, (data) => {
+                console.log(`${event} received:`, data);
+                addNotification(event, data);
+              });
+            });
+
+            // Start simulation if enabled
+            if (elements.simulateCheckbox.checked) {
+              startSimulation();
+            }
+          } catch (error) {
+            console.error("Failed to connect to server:", error);
+            addNotification("CONNECTION_ERROR", {
+              status: "FAILED",
+              message: "Failed to connect to server: " + error.message,
+              timestamp: new Date().toISOString(),
+            });
+          }
+        }
+
+        // Start simulation of notifications
+        function startSimulation() {
+          if (state.simulationInterval) {
+            clearInterval(state.simulationInterval);
+          }
+
+          state.simulationInterval = setInterval(() => {
+            if (state.connected) {
+              // Only simulate if actually connected to a server
+              return;
+            }
+
+            // Simulate receiving a notification
+            const events = [
+              "INVOICE_TOUR_PROCESSING",
+              "INVOICE_TOUR_PENDING",
+              "INVOICE_TOUR_SUCCESS",
+              "INVOICE_TOUR_FAILED",
+              "CREATE_RECEIVE_VOUCHER_PENDING",
+              "CREATE_RECEIVE_VOUCHER_SUCCESS",
+              "CREATE_RECEIVE_VOUCHER_FAILED",
+              "PAYMENT_PROCESSING_PENDING",
+              "PAYMENT_PROCESSING_SUCCESS",
+              "PAYMENT_PROCESSING_FAILED",
+            ];
+
+            const statuses = [
+              "PENDING",
+              "PROCESSING",
+              "SUCCESS",
+              "FAILED",
+              "COMPLETE",
+            ];
+            const messages = [
+              "Invoice processing started",
+              "Payment voucher created successfully",
+              "Tour invoice failed to process",
+              "Receive voucher updated",
+              "Payment processing in progress",
+              "Voucher deletion completed",
+            ];
+
+            const randomEvent =
+              events[Math.floor(Math.random() * events.length)];
+            const randomStatus =
+              statuses[Math.floor(Math.random() * statuses.length)];
+            const randomMessage =
+              messages[Math.floor(Math.random() * messages.length)];
+            const randomVoucher =
+              "VCH" + Math.floor(1000 + Math.random() * 9000);
+
+            const simulatedData = {
+              status: randomStatus,
+              message: randomMessage,
+              voucherNo: Math.random() > 0.3 ? randomVoucher : undefined,
+              timestamp: new Date().toISOString(),
+            };
+
+            addNotification(randomEvent, simulatedData);
+          }, 3000);
+        }
+
+        // Stop simulation
+        function stopSimulation() {
+          if (state.simulationInterval) {
+            clearInterval(state.simulationInterval);
+            state.simulationInterval = null;
+          }
+        }
+
+        // Add a notification to the UI
+        function addNotification(event, data) {
+          // Add metadata to the notification data
+          const notification = {
+            ...data,
+            id: Date.now() + Math.random().toString(36).substr(2, 9),
+            type: getNotificationType(event),
+            event: event,
+            read: false,
+            receivedAt: new Date(),
+          };
+
+          // Add to state and update UI
+          state.notifications.unshift(notification);
+          renderNotifications();
+          updateStats();
+
+          // Show desktop notification if enabled
+          if (Notification.permission === "granted") {
+            new Notification("New Notification", {
+              body: `[${data.status}] ${data.message}`,
+              icon: "https://cdn-icons-png.flaticon.com/512/3658/3658776.png",
+            });
+          }
+        }
+
+        // Helper function to determine notification type
+        function getNotificationType(event) {
+          if (event.includes("INVOICE")) return "INVOICE";
+          if (event.includes("VOUCHER")) return "VOUCHER";
+          if (event.includes("PAYMENT")) return "PAYMENT";
+          return "OTHER";
+        }
+
+        // Update connection status UI
+        function updateConnectionStatus() {
+          if (state.connected) {
+            elements.connectionDot.classList.remove("disconnected");
+            elements.connectionText.textContent = "Connected";
+            elements.connectBtn.innerHTML =
+              '<i class="fas fa-plug"></i> Disconnect';
+            stopSimulation();
+          } else {
+            elements.connectionDot.classList.add("disconnected");
+            elements.connectionText.textContent = "Disconnected";
+            elements.connectBtn.innerHTML =
+              '<i class="fas fa-plug"></i> Connect';
+
+            if (elements.simulateCheckbox.checked) {
+              elements.connectionText.textContent = "Simulating (Disconnected)";
+              startSimulation();
+            }
+          }
+        }
+
+        // Filter notifications based on current filters
+        function filterNotifications() {
+          return state.notifications.filter((notification) => {
+            // Status filter
+            if (
+              state.filters.status !== "all" &&
+              notification.status !== state.filters.status
+            ) {
+              return false;
+            }
+
+            // Type filter
+            if (
+              state.filters.type !== "all" &&
+              notification.type !== state.filters.type
+            ) {
+              return false;
+            }
+
+            // Search filter
+            if (state.filters.search) {
+              const searchTerm = state.filters.search.toLowerCase();
+              const searchContent = `${notification.message} ${
+                notification.voucherNo || ""
+              } ${notification.status}`.toLowerCase();
+              if (!searchContent.includes(searchTerm)) {
+                return false;
+              }
+            }
+
+            return true;
+          });
+        }
+
+        // Render notifications to the UI
+        function renderNotifications() {
+          const filteredNotifications = filterNotifications();
+
+          if (filteredNotifications.length === 0) {
+            elements.notificationList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-filter"></i>
+                            <p>No notifications match your filters</p>
+                        </div>
+                    `;
+            return;
+          }
+
+          elements.notificationList.innerHTML = filteredNotifications
+            .map(
+              (notification) => `
+                    <div class="notification-item ${notification.status} ${
+                notification.read ? "read" : "unread"
+              }" data-id="${notification.id}">
+                        <div class="notification-header">
+                            <div class="notification-title">${notification.event.replace(
+                              /_/g,
+                              " "
+                            )}</div>
+                            <div class="notification-time">${formatTime(
+                              new Date(notification.timestamp)
+                            )}</div>
+                        </div>
+                        <div class="notification-content">
+                            ${notification.message} ${
+                notification.voucherNo
+                  ? `— Voucher No: ${notification.voucherNo}`
+                  : ""
+              }
+                        </div>
+                        <div class="notification-footer">
+                            <div class="notification-status">
+                                <span class="status-badge ${
+                                  notification.status
+                                }"></span>
+                                <span>${notification.status}</span>
+                            </div>
+                            <div class="notification-actions">
+                                <button class="mark-read" title="Mark as read">
+                                    <i class="fas fa-envelope${
+                                      notification.read ? "-open" : ""
+                                    }"></i>
+                                </button>
+                                <button class="delete-notification" title="Delete">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `
+            )
+            .join("");
+
+          // Add event listeners to notification actions
+          document.querySelectorAll(".mark-read").forEach((button) => {
+            button.addEventListener("click", function () {
+              const notificationElement = this.closest(".notification-item");
+              const id = notificationElement.dataset.id;
+              const notification = state.notifications.find((n) => n.id === id);
+
+              if (notification) {
+                notification.read = !notification.read;
+                renderNotifications();
+                updateStats();
+              }
+            });
+          });
+
+          document
+            .querySelectorAll(".delete-notification")
+            .forEach((button) => {
+              button.addEventListener("click", function () {
+                const notificationElement = this.closest(".notification-item");
+                const id = notificationElement.dataset.id;
+
+                state.notifications = state.notifications.filter(
+                  (n) => n.id !== id
+                );
+                renderNotifications();
+                updateStats();
+              });
+            });
+        }
+
+        // Update statistics
+        function updateStats() {
+          const total = state.notifications.length;
+          const unread = state.notifications.filter((n) => !n.read).length;
+          const successful = state.notifications.filter(
+            (n) => n.status === "SUCCESS" || n.status === "COMPLETE"
+          ).length;
+          const failed = state.notifications.filter(
+            (n) => n.status === "FAILED" || n.status === "ERROR"
+          ).length;
+          const successRate =
+            total > 0 ? Math.round((successful / total) * 100) : 0;
+
+          elements.totalCount.textContent = total;
+          elements.unreadCount.textContent = unread;
+          elements.successRate.textContent = `${successRate}%`;
+          elements.failedCount.textContent = failed;
+        }
+
+        // Format time for display
+        function formatTime(date) {
+          return date.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        }
+
+        // Event listeners
+        elements.clearBtn.addEventListener("click", function () {
+          state.notifications = [];
+          renderNotifications();
+          updateStats();
+        });
+
+        elements.connectBtn.addEventListener("click", function () {
+          if (state.connected) {
+            state.socket.disconnect();
+          } else {
+            initSocket();
+          }
+        });
+
+        elements.refreshBtn.addEventListener("click", function () {
+          renderNotifications();
+          this.classList.add("rotating");
+          setTimeout(() => {
+            this.classList.remove("rotating");
+          }, 1000);
+        });
+
+        elements.toggleThemeBtn.addEventListener("click", function () {
+          state.darkMode = !state.darkMode;
+          document.body.classList.toggle("dark-mode");
+
+          if (state.darkMode) {
+            this.innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+            localStorage.setItem("darkMode", "true");
+          } else {
+            this.innerHTML = '<i class="fas fa-moon"></i> Dark Mode';
+            localStorage.setItem("darkMode", "false");
+          }
+        });
+
+        elements.searchInput.addEventListener("input", function () {
+          state.filters.search = this.value;
+          renderNotifications();
+        });
+
+        elements.simulateCheckbox.addEventListener("change", function () {
+          if (this.checked && !state.connected) {
+            startSimulation();
+            updateConnectionStatus();
+          } else {
+            stopSimulation();
+            updateConnectionStatus();
+          }
+        });
+
+        // Filter event listeners
+        document
+          .querySelectorAll(".filter-item[data-status]")
+          .forEach((item) => {
+            item.addEventListener("click", function () {
+              document
+                .querySelectorAll(".filter-item[data-status]")
+                .forEach((i) => i.classList.remove("active"));
+              this.classList.add("active");
+              state.filters.status = this.dataset.status;
+              renderNotifications();
+            });
+          });
+
+        document.querySelectorAll(".filter-item[data-type]").forEach((item) => {
+          item.addEventListener("click", function () {
+            document
+              .querySelectorAll(".filter-item[data-type]")
+              .forEach((i) => i.classList.remove("active"));
+            this.classList.add("active");
+            state.filters.type = this.dataset.type;
+            renderNotifications();
+          });
+        });
+
+        // Request notification permission
+        if ("Notification" in window) {
+          Notification.requestPermission();
+        }
+
+        // Initialize
+        updateConnectionStatus();
+        updateStats();
+
+        // Try to connect to the server
+        initSocket();
+      });
+    </script>
+  </body>
+</html>
